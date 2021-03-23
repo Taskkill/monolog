@@ -8,6 +8,7 @@ require_relative './ast/junction'
 require_relative './ast/literal'
 require_relative './ast/var'
 require_relative './ast/wildcard'
+require_relative './ast/negation'
 
 # Parser of the language
 class Parser
@@ -101,7 +102,8 @@ class Parser
 
     term = first_of(
       [method(:parse_predicate),
-       method(:parse_variable)],
+       method(:parse_variable),
+       method(:parse_negation)],
       'not a valid term'
     )
 
@@ -116,7 +118,8 @@ class Parser
         try_parse do
           right = first_of(
             [method(:parse_predicate),
-             method(:parse_variable)],
+             method(:parse_variable),
+             method(:parse_negation)],
             'not a valid term'
           )
         end
@@ -212,6 +215,23 @@ class Parser
     return Wildcard.new if tok.instance_of? Underscore
 
     raise 'not an wildcard'
+  end
+
+  def parse_negation
+    tok = @lexer.next_token
+
+    if tok.instance_of?(SlashPlus)
+      inside = first_of(
+        [method(:parse_predicate),
+          method(:parse_variable),
+          method(:parse_negation)],
+        'not a valid term'
+      )
+
+      return Negation.new(inside)
+    end
+
+    raise 'not a negation'
   end
 
   def parse_predicate
